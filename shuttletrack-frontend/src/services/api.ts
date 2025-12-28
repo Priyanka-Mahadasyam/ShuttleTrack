@@ -2,9 +2,11 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 import { getToken, clearAuth } from "../utils/auth";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
-const BASE_URL =
-  (import.meta.env.VITE_API_URL as string) ?? "http://127.0.0.1:8000";
+if (!BASE_URL) {
+  throw new Error("VITE_API_BASE_URL is not defined");
+}
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -13,39 +15,26 @@ const api = axios.create({
   },
 });
 
-// ✅ Proper interceptor typing for Axios v1+
+// Attach token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    try {
-      // Read from sessionStorage per-request so each tab's token is used
-      const token = getToken();
-
-      if (token) {
-        // Ensure headers object exists
-        if (!config.headers) {
-          config.headers = {} as any;
-        }
-
-        // Add Bearer token safely
-        (config.headers as any).Authorization = `Bearer ${token}`;
-      }
-    } catch (err) {
-      console.warn("api interceptor error", err);
+    const token = getToken();
+    if (token) {
+      config.headers = config.headers ?? {};
+      (config.headers as any).Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Optional: central 401 handling — clears per-tab auth if unauthorized
+// Handle 401
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    try {
-      if (err?.response?.status === 401) {
-        clearAuth();
-      }
-    } catch {}
+    if (err?.response?.status === 401) {
+      clearAuth();
+    }
     return Promise.reject(err);
   }
 );

@@ -2,16 +2,12 @@
 import { useEffect, useRef } from "react";
 import { getToken } from "../utils/auth";
 
-/**
- * useBusLocationWs
- * Opens a per-bus WebSocket: ws://host/ws/subscribe/{bus_id}?token=...
- */
 export default function useBusLocationWs(
   onMessage: (msg: any) => void,
   busId?: string | number | null
 ) {
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectAttempts = useRef<number>(0);
+  const reconnectAttempts = useRef(0);
 
   useEffect(() => {
     if (!busId) {
@@ -19,13 +15,16 @@ export default function useBusLocationWs(
       return;
     }
 
-    const base =
-      import.meta.env.VITE_BACKEND_WS_URL ||
-      `${location.protocol === "https:" ? "wss" : "ws"}://${location.hostname}:${location.port ? location.port : (location.protocol === "https:" ? "443" : "80")}`;
+    // ✅ ALWAYS backend — NO FALLBACK
+    const WS_BASE = import.meta.env.VITE_BACKEND_WS_URL;
+    if (!WS_BASE) {
+      console.warn("[WS] VITE_BACKEND_WS_URL not set");
+      return;
+    }
 
     const token = getToken();
     const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
-    const wsUrl = `${base}/ws/subscribe/${busId}${tokenParam}`;
+    const wsUrl = `${WS_BASE}/ws/subscribe/${busId}${tokenParam}`;
 
     let alive = true;
 
@@ -42,9 +41,13 @@ export default function useBusLocationWs(
         try {
           const data = JSON.parse(e.data);
           onMessage(data);
-        } catch (err) {
-          console.warn("[WS] Parse error", err);
+        } catch {
+          console.warn("[WS] Invalid JSON");
         }
+      };
+
+      ws.onerror = () => {
+        ws.close();
       };
 
       ws.onclose = () => {
@@ -53,22 +56,13 @@ export default function useBusLocationWs(
         console.warn(`[WS] Closed — reconnecting in ${delay / 1000}s`);
         setTimeout(connect, delay);
       };
-
-      ws.onerror = (e) => {
-        console.error("[WS] Error", e);
-        try {
-          ws.close();
-        } catch {}
-      };
     };
 
     connect();
 
     return () => {
       alive = false;
-      try {
-        wsRef.current?.close(1000, "component unmounted");
-      } catch {}
+      wsRef.current?.close();
       wsRef.current = null;
     };
   }, [busId, onMessage]);

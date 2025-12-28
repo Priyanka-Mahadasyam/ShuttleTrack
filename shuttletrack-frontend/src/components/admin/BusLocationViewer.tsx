@@ -45,15 +45,8 @@ function Recenter({
   return null;
 }
 
-type Bus = {
-  id: number;
-  name?: string;
-};
-
-type Stop = {
-  id: string | number;
-  name: string;
-};
+type Bus = { id: number; name?: string };
+type Stop = { id: string | number; name: string };
 
 export default function BusLocationViewer(): JSX.Element {
   const [buses, setBuses] = useState<Bus[]>([]);
@@ -67,10 +60,11 @@ export default function BusLocationViewer(): JSX.Element {
     eta?: string | null;
   } | null>(null);
 
+  // null = no bus selected | false = inactive | true = active
   const [isActive, setIsActive] = useState<boolean | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const pollRef = useRef<number | null>(null);
 
+  const pollRef = useRef<number | null>(null);
   const POLL_INTERVAL_MS = 5000;
 
   // Load buses
@@ -86,9 +80,8 @@ export default function BusLocationViewer(): JSX.Element {
       const res = await api.get(`/buses/${busId}/location`);
       const d = res.data ?? {};
 
-      const lat = d.latitude ?? d.lat ?? null;
-      const lon = d.longitude ?? d.lon ?? null;
-      const lastSeen = d.timestamp ?? d.last_seen ?? null;
+      const lat = d.latitude ?? null;
+      const lon = d.longitude ?? null;
 
       if (lat != null && lon != null) {
         setBusLocation({
@@ -99,7 +92,7 @@ export default function BusLocationViewer(): JSX.Element {
           eta: d.eta ?? null,
         });
         setIsActive(true);
-        setLastUpdated(lastSeen ? new Date(lastSeen) : new Date());
+        setLastUpdated(new Date());
       } else {
         setBusLocation(null);
         setIsActive(false);
@@ -125,12 +118,11 @@ export default function BusLocationViewer(): JSX.Element {
     api
       .get(`/buses/${selectedBus}`)
       .then((res) => {
-        const stopsArr =
-          res.data?.stops ?? res.data?.route?.stops ?? [];
+        const s = res.data?.stops ?? [];
         setStops(
-          stopsArr.map((s: any, i: number) => ({
-            id: s.id ?? i,
-            name: s.name ?? `Stop ${i + 1}`,
+          s.map((x: any, i: number) => ({
+            id: x.id ?? i,
+            name: x.name ?? `Stop ${i + 1}`,
           }))
         );
       })
@@ -158,7 +150,8 @@ export default function BusLocationViewer(): JSX.Element {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => window.history.back()}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
           <div>
             <h1 className="text-3xl font-bold">Track Any Bus</h1>
@@ -171,9 +164,7 @@ export default function BusLocationViewer(): JSX.Element {
         <Card>
           <CardHeader>
             <CardTitle>Select Bus</CardTitle>
-            <CardDescription>
-              Choose a bus to view its location
-            </CardDescription>
+            <CardDescription>Choose a bus to track</CardDescription>
           </CardHeader>
           <CardContent>
             <Select value={selectedBus} onValueChange={setSelectedBus}>
@@ -181,9 +172,9 @@ export default function BusLocationViewer(): JSX.Element {
                 <SelectValue placeholder="Select a bus" />
               </SelectTrigger>
               <SelectContent>
-                {buses.map((bus) => (
-                  <SelectItem key={bus.id} value={String(bus.id)}>
-                    {bus.name ?? `Bus ${bus.id}`}
+                {buses.map((b) => (
+                  <SelectItem key={b.id} value={String(b.id)}>
+                    {b.name ?? `Bus ${b.id}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -191,11 +182,31 @@ export default function BusLocationViewer(): JSX.Element {
           </CardContent>
         </Card>
 
-        {isActive === true && busLocation && (
+        {isActive === null ? (
+          <div className="text-center text-muted-foreground">
+            Please select a bus.
+          </div>
+        ) : isActive === false ? (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Navigation className="h-5 w-5" /> Map View — {routeName}
+              <CardTitle className="flex gap-2 items-center">
+                <MapPin className="h-5 w-5" />
+                Live Location
+              </CardTitle>
+              <CardDescription>
+                Bus inactive — GPS not sending data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-64 flex items-center justify-center text-muted-foreground">
+              No live coordinates available.
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex gap-2 items-center">
+                <Navigation className="h-5 w-5" />
+                Map View — {routeName}
               </CardTitle>
               <CardDescription>
                 Last updated:{" "}
@@ -203,25 +214,34 @@ export default function BusLocationViewer(): JSX.Element {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MapContainer
-                center={[busLocation.lat, busLocation.lon]}
-                zoom={14}
-                style={{ height: "400px", width: "100%" }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker
-                  position={[busLocation.lat, busLocation.lon]}
-                  icon={busIcon}
+              {busLocation ? (
+                <MapContainer
+                  center={[busLocation.lat, busLocation.lon]}
+                  zoom={14}
+                  style={{ height: 400 }}
                 >
-                  <Popup>
-                    <b>{routeName}</b>
-                  </Popup>
-                </Marker>
-                <Recenter
-                  lat={busLocation.lat}
-                  lon={busLocation.lon}
-                />
-              </MapContainer>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker
+                    position={[busLocation.lat, busLocation.lon]}
+                    icon={busIcon}
+                  >
+                    <Popup>
+                      <b>{routeName}</b>
+                      <br />
+                      {busLocation.currentStop ?? "—"} →{" "}
+                      {busLocation.nextStop ?? "—"}
+                    </Popup>
+                  </Marker>
+                  <Recenter
+                    lat={busLocation.lat}
+                    lon={busLocation.lon}
+                  />
+                </MapContainer>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
+                  Waiting for location…
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

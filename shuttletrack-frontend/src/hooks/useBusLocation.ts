@@ -13,12 +13,8 @@ export type BusLocationResponse = {
   timestamp?: string | null;
 };
 
-export function useBusLocation(
-  busId?: number | string,
-  intervalMs: number = 3000
-) {
+export function useBusLocation(busId?: number | string, intervalMs = 5000) {
   const [location, setLocation] = useState<BusLocationResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     if (!busId) {
@@ -27,35 +23,25 @@ export function useBusLocation(
     }
 
     let mounted = true;
-    let timer: number;
+    let handle: number;
 
-    const fetchLocation = async () => {
+    const fetchOnce = async () => {
       try {
-        setLoading(true);
-        const res = await api.get<BusLocationResponse>(
-          `/buses/${busId}/location`
-        );
-        if (!mounted) return;
-        setLocation(res.data);
-      } catch (err) {
-        if (!mounted) return;
-        console.warn("Failed to fetch bus location", err);
-      } finally {
-        if (mounted) setLoading(false);
+        const res = await api.get(`/buses/${busId}/location`);
+        if (mounted) setLocation(res.data ?? null);
+      } catch {
+        if (mounted) setLocation(null);
       }
     };
 
-    // initial fetch
-    fetchLocation();
-
-    // polling
-    timer = window.setInterval(fetchLocation, intervalMs);
+    fetchOnce();
+    handle = window.setInterval(fetchOnce, intervalMs);
 
     return () => {
       mounted = false;
-      clearInterval(timer);
+      clearInterval(handle);
     };
   }, [busId, intervalMs]);
 
-  return { location, loading };
+  return location;
 }

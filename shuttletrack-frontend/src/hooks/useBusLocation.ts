@@ -1,45 +1,69 @@
-// src/hooks/useBusLocation.ts
-import { useEffect, useState } from "react";
-import api from "../services/api";
+// src/hooks/useBusLocationWs.ts
+import { useEffect, useRef } from "react";
+import { getToken } from "../utils/auth";
 
-export type BusLocationResponse = {
-  bus_id: number;
-  latitude: number;
-  longitude: number;
-  is_active?: boolean;
-  current_stop?: string | null;
-  next_stop?: string | null;
-  eta?: string | null;
-  timestamp?: string | null;
-};
+export default function useBusLocationWs(
+  onMessage: (msg: any) => void,
+  busId?: string | number | null
+) {
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectAttempts = useRef(0);
 
-export function useBusLocation(busId?: number | string, intervalMs = 3000) {
-  const [location, setLocation] = useState<BusLocationResponse | null>(null);
   useEffect(() => {
     if (!busId) {
-      setLocation(null);
+      console.log("[WS] No bus selected — skipping connection");
       return;
     }
-    let mounted = true;
-    let handle: number;
-    const fetchOnce = async () => {
-      try {
-        const res = await api.get<BusLocationResponse>(`/buses/${busId}/location`);
-        if (!mounted) return;
-        setLocation(res.data ?? null);
-      } catch (err) {
-        // swallow network errors for now
-        if (!mounted) return;
-        setLocation(null);
-      }
-    };
-    fetchOnce();
-    handle = window.setInterval(fetchOnce, intervalMs);
-    return () => {
-      mounted = false;
-      clearInterval(handle);
-    };
-  }, [busId, intervalMs]);
 
-  return location;
+    // ✅ ALWAYS backend — NO FALLBACK
+    const WS_BASE = import.meta.env.VITE_BACKEND_WS_URL;
+    if (!WS_BASE) {
+      console.warn("[WS] VITE_BACKEND_WS_URL not set");
+      return;
+    }
+
+    const token = getToken();
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+    const wsUrl = `${WS_BASE}/ws/subscribe/${busId}${tokenParam}`;
+
+    let alive = true;
+
+    const connect = () => {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("[WS] Connected:", wsUrl);
+        reconnectAttempts.current = 0;
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          onMessage(data);
+        } catch {
+          console.warn("[WS] Invalid JSON");
+        }
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+
+      ws.onclose = () => {
+        if (!alive) return;
+        const delay = Math.min(30000, 1000 * 2 ** reconnectAttempts.current++);
+        console.warn(`[WS] Closed — reconnecting in ${delay / 1000}s`);
+        setTimeout(connect, delay);
+      };
+    };
+
+    connect();
+
+    return () => {
+      alive = false;
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, [busId, onMessage]);
 }

@@ -34,17 +34,21 @@ type Stop = { id: string | number; name: string };
 
 export default function BusLocationViewer(): JSX.Element {
   const [buses, setBuses] = useState<Bus[]>([]);
-  const [selectedBus, setSelectedBus] = useState<string>(""); // empty => no bus selected
+  const [selectedBus, setSelectedBus] = useState<string>("");
   const [stops, setStops] = useState<Stop[]>([]);
-  const [busLocation, setBusLocation] = useState<{ lat: number; lon: number; currentStop?: string | null; nextStop?: string | null; eta?: string | null } | null>(null);
-  // isActive: null => no bus selected, false => selected but GPS off, true => selected and GPS on
+  const [busLocation, setBusLocation] = useState<{
+    lat: number;
+    lon: number;
+    currentStop?: string | null;
+    nextStop?: string | null;
+    eta?: string | null;
+  } | null>(null);
   const [isActive, setIsActive] = useState<boolean | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const pollRef = useRef<number | null>(null);
 
   const POLL_INTERVAL_MS = 5000;
 
-  // load buses once
   useEffect(() => {
     api.get<Bus[]>("/buses")
       .then((r) => setBuses(Array.isArray(r.data) ? r.data : []))
@@ -54,7 +58,6 @@ export default function BusLocationViewer(): JSX.Element {
       });
   }, []);
 
-  // authoritative check: GET /buses/{id}/location
   async function fetchLocationRecord(busId: string) {
     try {
       const res = await api.get(`/buses/${busId}/location`);
@@ -92,12 +95,11 @@ export default function BusLocationViewer(): JSX.Element {
     }
   }
 
-  // when bus selected, load route snapshot and check location-record, then poll
   useEffect(() => {
     if (!selectedBus) {
       setStops([]);
       setBusLocation(null);
-      setIsActive(null); // NO BUS SELECTED
+      setIsActive(null);
       setLastUpdated(null);
       if (pollRef.current) {
         clearInterval(pollRef.current);
@@ -106,41 +108,36 @@ export default function BusLocationViewer(): JSX.Element {
       return;
     }
 
-    // mark selected-but-not-live until we confirm
     setIsActive(false);
 
-    // load bus details (stops)
     api.get(`/buses/${selectedBus}`)
       .then((r) => {
         const data = r.data ?? {};
-        const stopsArr = Array.isArray(data.stops) ? data.stops : data.route?.stops ?? [];
-        setStops(stopsArr.map((s: any, i: number) => ({ id: s.id ?? i, name: s.name ?? s.label ?? `Stop ${i + 1}` })));
+        const stopsArr = Array.isArray(data.stops)
+          ? data.stops
+          : data.route?.stops ?? [];
+        setStops(
+          stopsArr.map((s: any, i: number) => ({
+            id: s.id ?? i,
+            name: s.name ?? s.label ?? `Stop ${i + 1}`,
+          }))
+        );
       })
-      .catch((e) => {
-        console.warn("Failed to fetch bus details", e);
-        setStops([]);
-      });
+      .catch(() => setStops([]));
 
-    // authoritative location check
     fetchLocationRecord(selectedBus);
 
-    // start poll fallback
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-    pollRef.current = window.setInterval(() => fetchLocationRecord(selectedBus), POLL_INTERVAL_MS);
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = window.setInterval(
+      () => fetchLocationRecord(selectedBus),
+      POLL_INTERVAL_MS
+    );
 
     return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      if (pollRef.current) clearInterval(pollRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBus]);
 
-  // websocket updates: only apply if matches selectedBus (makes map live immediately when driver starts)
   useBusLocationWs(
     (msg: any) => {
       if (!msg) return;
@@ -167,7 +164,10 @@ export default function BusLocationViewer(): JSX.Element {
     selectedBus || null
   );
 
-  const routeName = useMemo(() => buses.find((b) => String(b.id) === String(selectedBus))?.name ?? "", [buses, selectedBus]);
+  const routeName = useMemo(
+    () => buses.find((b) => String(b.id) === String(selectedBus))?.name ?? "",
+    [buses, selectedBus]
+  );
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -182,15 +182,16 @@ export default function BusLocationViewer(): JSX.Element {
           </div>
         </div>
 
-        {/* Select Bus */}
         <Card className="hover-glow">
           <CardHeader>
             <CardTitle>Select Bus</CardTitle>
             <CardDescription>Choose a bus to view its live location</CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={selectedBus} onValueChange={(v: string) => setSelectedBus(v)}>
-              <SelectTrigger><SelectValue placeholder="Select a bus" /></SelectTrigger>
+            <Select value={selectedBus} onValueChange={setSelectedBus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a bus" />
+              </SelectTrigger>
               <SelectContent>
                 {buses.map((bus) => (
                   <SelectItem key={bus.id} value={String(bus.id)}>
@@ -202,30 +203,50 @@ export default function BusLocationViewer(): JSX.Element {
           </CardContent>
         </Card>
 
-        {/* UI cases */}
         {isActive === null ? (
-          <div className="text-center text-muted-foreground mt-10">Please select a bus to view tracking details.</div>
+          <div className="text-center text-muted-foreground mt-10">
+            Please select a bus to view tracking details.
+          </div>
         ) : isActive === false ? (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Live Location</CardTitle>
-              <CardDescription>Bus inactive — driver GPS not currently sending location.</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                Live Location
+              </CardTitle>
+              <CardDescription>
+                Bus inactive — driver GPS not currently sending location.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
-                Bus inactive. No live coordinates available.
+              <div className="flex flex-col items-center justify-center h-64 text-sm text-muted-foreground text-center space-y-2 px-4">
+                <div>Bus inactive. No live coordinates available.</div>
+                <div className="text-xs text-muted-foreground max-w-md">
+                  The Render free tier does not support persistent WebSocket connections,
+                  so real-time map updates are limited; this will be resolved by migrating
+                  to a better hosting platform.
+                </div>
               </div>
             </CardContent>
           </Card>
         ) : (
           <Card className="hover-glow">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Navigation className="h-5 w-5 text-secondary" /> Map View — {routeName}</CardTitle>
-              <CardDescription>Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "—"}</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Navigation className="h-5 w-5 text-secondary" />
+                Map View — {routeName}
+              </CardTitle>
+              <CardDescription>
+                Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "—"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {busLocation ? (
-                <MapContainer center={[busLocation.lat, busLocation.lon]} zoom={14} style={{ height: "400px", width: "100%" }}>
+                <MapContainer
+                  center={[busLocation.lat, busLocation.lon]}
+                  zoom={14}
+                  style={{ height: "400px", width: "100%" }}
+                >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   <Marker position={[busLocation.lat, busLocation.lon]} icon={busIcon}>
                     <Popup>
@@ -236,7 +257,9 @@ export default function BusLocationViewer(): JSX.Element {
                   <Recenter lat={busLocation.lat} lon={busLocation.lon} />
                 </MapContainer>
               ) : (
-                <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">Waiting for coordinates...</div>
+                <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+                  Waiting for coordinates...
+                </div>
               )}
             </CardContent>
           </Card>

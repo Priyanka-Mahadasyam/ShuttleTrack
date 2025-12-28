@@ -12,7 +12,7 @@ export function About() {
     },
     {
       name: 'Renuka',
-      role: 'Research Team', 
+      role: 'Research Team',
       initials: 'R',
       description: 'Research and development'
     }
@@ -66,7 +66,7 @@ export function About() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-center">
               {teamMembers.map((member, index) => (
                 <div key={index} className="text-center space-y-4">
                   <Avatar className="w-20 h-20 mx-auto">
@@ -82,8 +82,12 @@ export function About() {
                 </div>
               ))}
             </div>
-            
-            
+
+            <div className="mt-8 text-center p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground font-medium">
+                MVGR College of Engineering
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,10 +1,10 @@
 // src/services/api.ts
 import axios from "axios";
 
-// ✅ PRODUCTION-FIRST BASE URL
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://127.0.0.1:8000"; // fallback only for local dev
+// 🚨 NO FALLBACK — FAIL HARD IF ENV IS MISSING
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+console.log("🔥 API BASE URL =", BASE_URL);
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -13,7 +13,6 @@ const api = axios.create({
   },
 });
 
-// ✅ Attach JWT token automatically
 api.interceptors.request.use(
   (config) => {
     const token =

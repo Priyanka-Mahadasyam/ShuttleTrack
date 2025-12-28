@@ -11,15 +11,9 @@ export function About() {
       description: 'UI/UX design and React development'
     },
     {
-      name: 'Yashwanth Swamy',
+      name: 'Renuka',
       role: 'Research Team', 
-      initials: 'YS',
-      description: 'Research and development'
-    },
-    {
-      name: 'Phanindra',
-      role: 'Research Team',
-      initials: 'P',
+      initials: 'R',
       description: 'Research and development'
     }
   ]
@@ -89,14 +83,7 @@ export function About() {
               ))}
             </div>
             
-            <div className="mt-8 text-center p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium">Project Guide:</span> Dr. P. Srinivasa Rao
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Professor, Department of Data Engineering
-              </p>
-            </div>
+            
           </CardContent>
         </Card>
       </div>

@@ -66,7 +66,7 @@ export function About() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-center">
               {teamMembers.map((member, index) => (
                 <div key={index} className="text-center space-y-4">
                   <Avatar className="w-20 h-20 mx-auto">

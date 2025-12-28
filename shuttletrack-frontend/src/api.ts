@@ -1,30 +1,33 @@
 // src/services/api.ts
 import axios from "axios";
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string) ?? "http://127.0.0.1:8000";
+// ✅ PRODUCTION-FIRST BASE URL
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://127.0.0.1:8000"; // fallback only for local dev
 
 const api = axios.create({
   baseURL: BASE_URL,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Request interceptor — use `any` for config to avoid Axios/TS mismatch on headers typing
+// ✅ Attach JWT token automatically
 api.interceptors.request.use(
-  (config: any) => {
-    try {
-      const token = localStorage.getItem("access_token") || localStorage.getItem("token");
-      if (token) {
-        if (!config.headers) config.headers = {};
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (err) {
-      // ignore localStorage errors (e.g., SSR)
-      // eslint-disable-next-line no-console
-      console.warn("api interceptor error", err);
+  (config) => {
+    const token =
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token");
+
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
-  (err) => Promise.reject(err)
+  (error) => Promise.reject(error)
 );
 
 export default api;

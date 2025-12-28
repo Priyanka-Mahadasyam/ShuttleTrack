@@ -2,19 +2,15 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
-export type BusLocationResponse = {
+export type BusLocation = {
   bus_id: number;
   latitude: number;
   longitude: number;
-  is_active?: boolean;
-  current_stop?: string | null;
-  next_stop?: string | null;
-  eta?: string | null;
-  timestamp?: string | null;
+  timestamp?: string;
 };
 
 export function useBusLocation(busId?: number | string, intervalMs = 5000) {
-  const [location, setLocation] = useState<BusLocationResponse | null>(null);
+  const [location, setLocation] = useState<BusLocation | null>(null);
 
   useEffect(() => {
     if (!busId) {
@@ -22,24 +18,27 @@ export function useBusLocation(busId?: number | string, intervalMs = 5000) {
       return;
     }
 
-    let mounted = true;
-    let handle: number;
+    let active = true;
 
-    const fetchOnce = async () => {
+    const fetchLocation = async () => {
       try {
         const res = await api.get(`/buses/${busId}/location`);
-        if (mounted) setLocation(res.data ?? null);
+        if (active) {
+          setLocation(res.data);
+        }
       } catch {
-        if (mounted) setLocation(null);
+        if (active) {
+          setLocation(null);
+        }
       }
     };
 
-    fetchOnce();
-    handle = window.setInterval(fetchOnce, intervalMs);
+    fetchLocation();
+    const id = setInterval(fetchLocation, intervalMs);
 
     return () => {
-      mounted = false;
-      clearInterval(handle);
+      active = false;
+      clearInterval(id);
     };
   }, [busId, intervalMs]);
 

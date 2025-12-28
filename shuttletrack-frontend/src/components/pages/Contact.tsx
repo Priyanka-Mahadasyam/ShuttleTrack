@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
-import { toast } from 'sonner@2.0.3'
+import { toast } from 'sonner'
 
 export function Contact() {
   const [formData, setFormData] = useState({
@@ -63,7 +63,7 @@ export function Contact() {
                   </div>
                   <div>
                     <div className="font-medium text-foreground">Email</div>
-                    <div className="text-sm text-muted-foreground">mahadasyampriyanka@gmail.com</div>
+                    <div className="text-sm text-muted-foreground">xxxxx@gmail.com</div>
                   </div>
                 </div>
 
@@ -73,7 +73,7 @@ export function Contact() {
                   </div>
                   <div>
                     <div className="font-medium text-foreground">Phone</div>
-                    <div className="text-sm text-muted-foreground">+91 6305883378</div>
+                    <div className="text-sm text-muted-foreground">+91 xxxxxxxxxx</div>
                   </div>
                 </div>
 

@@ -1,10 +1,8 @@
-// src/services/api.ts
 import axios from "axios";
 
-// 🚨 NO FALLBACK — FAIL HARD IF ENV IS MISSING
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-console.log("🔥 API BASE URL =", BASE_URL);
+// 🚨 TEMP HARD FIX — DIRECT BACKEND URL
+// This guarantees frontend NEVER calls localhost in production
+const BASE_URL = "https://shuttletrack-backend.onrender.com";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -13,6 +11,7 @@ const api = axios.create({
   },
 });
 
+// ✅ Attach JWT token automatically
 api.interceptors.request.use(
   (config) => {
     const token =

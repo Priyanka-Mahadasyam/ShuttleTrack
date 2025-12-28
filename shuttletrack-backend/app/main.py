@@ -63,3 +63,9 @@ app.include_router(announcements_router, prefix="/announcements", tags=["Announc
 app.include_router(websocket_router)
 app.include_router(locations_router, prefix="/locations", tags=["Locations"])
 app.include_router(locations_router)
+# --- SEED DATA ON STARTUP (SAFE) ---
+from app.seed import main as seed_main
+
+@app.on_event("startup")
+def run_seed():
+    seed_main()

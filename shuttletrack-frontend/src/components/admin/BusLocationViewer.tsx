@@ -210,6 +210,8 @@ export default function BusLocationViewer(): JSX.Element {
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Live Location</CardTitle>
               <CardDescription>Bus inactive — driver GPS not currently sending location.</CardDescription>
+              <CardDescription>The Render free version does not support persistent WebSocket connections, so real-time map loading is limited in the deployed build.
+In future, we will shift to a better hosting option to enable full real-time map tracking.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">

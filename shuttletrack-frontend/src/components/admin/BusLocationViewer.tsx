@@ -217,16 +217,16 @@ export default function BusLocationViewer(): JSX.Element {
       Bus inactive — driver GPS is not currently sending location data.
     </CardDescription>
 
-    <CardDescription>
-      The Render free tier does not support persistent WebSocket connections,
-      so real-time map updates are limited in the deployed version.
-      This will be resolved by migrating to a better hosting platform.
-    </CardDescription>
   </CardHeader>
 
   <CardContent>
     <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
       Bus inactive. No live coordinates available.
+      Bus inactive — driver GPS is not currently sending location data.
+      The Render free tier does not support persistent WebSocket connections,
+      so real-time map updates are limited; this will be resolved by migrating
+      to a better hosting platform.
+
     </div>
   </CardContent>
 </Card>

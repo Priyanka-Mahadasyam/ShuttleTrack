@@ -207,18 +207,30 @@ export default function BusLocationViewer(): JSX.Element {
           <div className="text-center text-muted-foreground mt-10">Please select a bus to view tracking details.</div>
         ) : isActive === false ? (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Live Location</CardTitle>
-              <CardDescription>Bus inactive — driver GPS not currently sending location.</CardDescription>
-              <CardDescription>The Render free version does not support persistent WebSocket connections, so real-time map loading is limited in the deployed build.
-In future, we will shift to a better hosting option to enable full real-time map tracking.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
-                Bus inactive. No live coordinates available.
-              </div>
-            </CardContent>
-          </Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <MapPin className="h-5 w-5 text-primary" />
+      Live Location
+    </CardTitle>
+
+    <CardDescription>
+      Bus inactive — driver GPS is not currently sending location data.
+    </CardDescription>
+
+    <CardDescription>
+      The Render free tier does not support persistent WebSocket connections,
+      so real-time map updates are limited in the deployed version.
+      This will be resolved by migrating to a better hosting platform.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent>
+    <div className="flex items-center justify-center h-64 text-sm text-muted-foreground">
+      Bus inactive. No live coordinates available.
+    </div>
+  </CardContent>
+</Card>
+
         ) : (
           <Card className="hover-glow">
             <CardHeader>

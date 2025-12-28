@@ -12,16 +12,13 @@ app = FastAPI(
 )
 
 # ------------------------------------------------------------------------------
-# CORS CONFIG (DEV SAFE)
+# CORS CONFIG (PRODUCTION + DEV)
 # ------------------------------------------------------------------------------
-# ❌ DO NOT use "*" with allow_credentials=True
-# ✅ Explicitly allow frontend origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
+        "https://shuttletrack-frontend.onrender.com",  # ✅ Render frontend
+        "http://localhost:5173",                       # ✅ Vite dev
         "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
@@ -40,11 +37,10 @@ def root():
 # Database init
 # ------------------------------------------------------------------------------
 from app.db.session import init_db
-
 init_db()
 
 # ------------------------------------------------------------------------------
-# Routers (NO defensive loading – FAIL FAST)
+# Routers
 # ------------------------------------------------------------------------------
 from app.routers.auth import router as auth_router
 from app.routers.routes_router import router as routes_router
@@ -54,6 +50,7 @@ from app.routers.announcements_router import router as announcements_router
 from app.routers.websocket_router import router as websocket_router
 from app.routers.locations import router as locations_router
 from app.routers.user_router import router as users_router
+
 app.include_router(users_router)
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(routes_router, prefix="/routes", tags=["Routes"])
@@ -62,8 +59,10 @@ app.include_router(feedback_router, prefix="/feedback", tags=["Feedback"])
 app.include_router(announcements_router, prefix="/announcements", tags=["Announcements"])
 app.include_router(websocket_router)
 app.include_router(locations_router, prefix="/locations", tags=["Locations"])
-app.include_router(locations_router)
-# --- SEED DATA ON STARTUP (SAFE) ---
+
+# ------------------------------------------------------------------------------
+# Seed data on startup (TEMP – hackathon safe)
+# ------------------------------------------------------------------------------
 from app.seed import main as seed_main
 
 @app.on_event("startup")

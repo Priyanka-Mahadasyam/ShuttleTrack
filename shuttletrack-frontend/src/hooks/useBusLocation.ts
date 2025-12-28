@@ -13,30 +13,28 @@ export type BusLocationResponse = {
   timestamp?: string | null;
 };
 
-export function useBusLocation(busId?: number | string, intervalMs = 5000) {
+export function useBusLocation(busId?: number | string, intervalMs = 3000) {
   const [location, setLocation] = useState<BusLocationResponse | null>(null);
-
   useEffect(() => {
     if (!busId) {
       setLocation(null);
       return;
     }
-
     let mounted = true;
     let handle: number;
-
     const fetchOnce = async () => {
       try {
-        const res = await api.get(`/buses/${busId}/location`);
-        if (mounted) setLocation(res.data ?? null);
-      } catch {
-        if (mounted) setLocation(null);
+        const res = await api.get<BusLocationResponse>(`/buses/${busId}/location`);
+        if (!mounted) return;
+        setLocation(res.data ?? null);
+      } catch (err) {
+        // swallow network errors for now
+        if (!mounted) return;
+        setLocation(null);
       }
     };
-
     fetchOnce();
     handle = window.setInterval(fetchOnce, intervalMs);
-
     return () => {
       mounted = false;
       clearInterval(handle);
